@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GigaCorp Customer Support Agent — AI-powered support with retrieval-augmented generation and session memory.">
+  <title>GigaCorp Support Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       Design System
+       ================================================================ */
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #1a1d27;
+      --bg-tertiary: #242838;
+      --bg-input: #1e2233;
+      --surface: #2a2e3f;
+      --surface-hover: #343852;
+      --border: #2e3348;
+      --border-focus: #6366f1;
+
+      --text-primary: #e8eaf0;
+      --text-secondary: #9ca3b8;
+      --text-muted: #6b7280;
+      --text-accent: #a5b4fc;
+
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.2);
+      --accent-subtle: rgba(99, 102, 241, 0.08);
+
+      --green: #34d399;
+      --green-bg: rgba(52, 211, 153, 0.1);
+      --red: #f87171;
+      --red-bg: rgba(248, 113, 113, 0.1);
+      --amber: #fbbf24;
+      --amber-bg: rgba(251, 191, 36, 0.1);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 20px var(--accent-glow);
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ================================================================
+       Reset & Base
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      height: 100%;
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ================================================================
+       Layout
+       ================================================================ */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* ================================================================
+       Header
+       ================================================================ */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: white;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .header-title {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .session-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .session-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-danger {
+      color: var(--red);
+    }
+
+    .btn-danger:hover {
+      background: var(--red-bg);
+      border-color: var(--red);
+    }
+
+    /* ================================================================
+       Welcome Screen
+       ================================================================ */
+    #welcome-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .welcome-icon {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, var(--accent), #a855f7, #ec4899);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: var(--shadow-lg), 0 0 40px var(--accent-glow);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .welcome-title {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 400px;
+      line-height: 1.6;
+    }
+
+    .welcome-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-large {
+      padding: 12px 24px;
+      font-size: 15px;
+      border-radius: var(--radius-md);
+    }
+
+    #resume-btn {
+      display: none;
+    }
+
+    /* ================================================================
+       Chat Area
+       ================================================================ */
+    #chat-container {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #chat-container.active {
+      display: flex;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    /* Scrollbar */
+    #messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    #messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: var(--radius-full);
+    }
+
+    /* ================================================================
+       Message Bubbles
+       ================================================================ */
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .message.user .message-avatar {
+      background: var(--surface);
+      color: var(--text-secondary);
+    }
+
+    .message.assistant .message-avatar {
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      color: white;
+    }
+
+    .message-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .message-content {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      line-height: 1.65;
+      word-wrap: break-word;
+    }
+
+    .message.user .message-content {
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant .message-content {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.assistant .message-content.ungrounded {
+      border-color: var(--amber);
+      background: var(--amber-bg);
+    }
+
+    /* ================================================================
+       Sources Panel
+       ================================================================ */
+    .sources-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--accent-subtle);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--text-accent);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font-sans);
+    }
+
+    .sources-toggle:hover {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    .sources-toggle .chevron {
+      transition: transform var(--transition);
+      font-size: 10px;
+    }
+
+    .sources-toggle.expanded .chevron {
+      transform: rotate(180deg);
+    }
+
+    .sources-panel {
+      display: none;
+      margin-top: 6px;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    .sources-panel.visible {
+      display: block;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .source-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 8px 0;
+    }
+
+    .source-item + .source-item {
+      border-top: 1px solid var(--border);
+    }
+
+    .source-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .source-item .source-section {
+      color: var(--text-accent);
+      font-weight: 500;
+    }
+
+    .source-item .source-lines {
+      color: var(--text-muted);
+    }
+
+    .source-item .source-sim {
+      margin-left: auto;
+      padding: 1px 6px;
+      background: var(--accent-subtle);
+      border-radius: var(--radius-full);
+      color: var(--text-accent);
+      font-size: 11px;
+    }
+
+    .source-evidence {
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    /* ================================================================
+       Typing Indicator
+       ================================================================ */
+    .typing-indicator {
+      display: none;
+      align-self: flex-start;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-left: 44px;
+    }
+
+    .typing-indicator.visible {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: typingBounce 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ================================================================
+       Input Area
+       ================================================================ */
+    .input-area {
+      padding: 16px 0 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .prompt-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .prompt-chip {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .prompt-chip:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--text-primary);
+      background: var(--accent-subtle);
+    }
+
+    .prompt-chip:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+
+    #user-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    #user-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    #send-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--accent);
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #send-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: var(--shadow-glow);
+      transform: scale(1.05);
+    }
+
+    #send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ================================================================
+       Responsive
+       ================================================================ */
+    @media (max-width: 600px) {
+      #app { padding: 0 10px; }
+      .message { max-width: 95%; }
+      .header-actions { gap: 4px; }
+      .btn { padding: 6px 10px; font-size: 12px; }
+      .welcome-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ================================================================
+       Header
+       ================================================================ -->
+  <header>
+    <div class="header-left">
+      <div class="logo">G</div>
+      <div class="header-title">
+        <h1>GigaCorp Support</h1>
+        <span class="session-badge" id="session-badge" style="display:none">
+          <span class="dot"></span>
+          <span id="session-id-display"></span>
+        </span>
+      </div>
+    </div>
+    <div class="header-actions" id="chat-actions" style="display:none">
+      <button class="btn btn-danger" id="clear-btn" title="Clear conversation">Clear</button>
+      <button class="btn" id="new-session-btn" title="Start a new session">New Session</button>
+    </div>
+  </header>
+
+  <!-- ================================================================
+       Welcome Screen
+       ================================================================ -->
+  <div id="welcome-screen">
+    <div class="welcome-icon">🤖</div>
+    <div class="welcome-title">GigaCorp Support Agent</div>
+    <div class="welcome-subtitle">
+      AI-powered customer support with retrieval-augmented generation and persistent session memory.
+      Ask about shipping, returns, business hours, or service tiers.
+    </div>
+    <div class="welcome-buttons">
+      <button class="btn btn-primary btn-large" id="new-session-start-btn">Start New Session</button>
+      <button class="btn btn-large" id="resume-btn">Resume Last Session</button>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       Chat Container
+       ================================================================ -->
+  <div id="chat-container">
+    <div id="messages"></div>
+    <div class="typing-indicator" id="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+    <div class="input-area">
+      <div class="prompt-bar">
+        <button class="prompt-chip" data-prompt="Do you ship to India?">Ship to India?</button>
+        <button class="prompt-chip" data-prompt="How much does express shipping cost?">Express cost?</button>
+        <button class="prompt-chip" data-prompt="How do I return an item?">Return item?</button>
+        <button class="prompt-chip" data-prompt="Compare Bronze, Silver, and Gold service tiers.">Compare tiers</button>
+      </div>
+      <div class="input-wrapper">
+        <textarea
+          id="user-input"
+          placeholder="Ask about shipping, returns, hours, or service tiers…"
+          rows="1"
+        ></textarea>
+        <button id="send-btn" disabled title="Send message">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================================================
+// Configuration
+// ==========================================================================
+const API_BASE = window.GIGACORP_API_BASE
+  || (window.location.protocol === "file:" ? "http://localhost:8000" : window.location.origin);
+
+// ==========================================================================
+// State
+// ==========================================================================
+let currentSessionId = null;
+let isWaiting = false;
+
+// ==========================================================================
+// DOM Elements
+// ==========================================================================
+const welcomeScreen     = document.getElementById("welcome-screen");
+const chatContainer     = document.getElementById("chat-container");
+const messagesEl        = document.getElementById("messages");
+const userInput         = document.getElementById("user-input");
+const sendBtn           = document.getElementById("send-btn");
+const clearBtn          = document.getElementById("clear-btn");
+const newSessionBtn     = document.getElementById("new-session-btn");
+const newSessionStartBtn = document.getElementById("new-session-start-btn");
+const resumeBtn         = document.getElementById("resume-btn");
+const sessionBadge      = document.getElementById("session-badge");
+const sessionIdDisplay  = document.getElementById("session-id-display");
+const chatActions       = document.getElementById("chat-actions");
+const typingIndicator   = document.getElementById("typing-indicator");
+const promptButtons     = document.querySelectorAll(".prompt-chip");
+
+// ==========================================================================
+// Initialization
+// ==========================================================================
+function init() {
+  const savedId = localStorage.getItem("gigacorp_session_id");
+  if (savedId) {
+    resumeBtn.style.display = "inline-flex";
+    resumeBtn.textContent = `Resume (${savedId})`;
+  }
+
+  newSessionStartBtn.addEventListener("click", createNewSession);
+  resumeBtn.addEventListener("click", () => resumeSession(savedId));
+  newSessionBtn.addEventListener("click", createNewSession);
+  clearBtn.addEventListener("click", clearConversation);
+  sendBtn.addEventListener("click", sendMessage);
+  userInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  userInput.addEventListener("input", () => {
+    sendBtn.disabled = !userInput.value.trim() || isWaiting;
+    autoResize(userInput);
+  });
+  for (const btn of promptButtons) {
+    btn.addEventListener("click", () => {
+      if (isWaiting || !currentSessionId) return;
+      userInput.value = btn.dataset.prompt;
+      autoResize(userInput);
+      sendMessage();
+    });
+  }
+}
+
+function autoResize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+
+// ==========================================================================
+// Session Management
+// ==========================================================================
+async function createNewSession() {
+  try {
+    const res = await fetch(`${API_BASE}/sessions`, { method: "POST" });
+    if (!res.ok) throw new Error("Failed to create session");
+    const data = await res.json();
+    currentSessionId = data.session_id;
+    localStorage.setItem("gigacorp_session_id", currentSessionId);
+    enterChat();
+    messagesEl.innerHTML = "";
+    addSystemMessage("Session started. How can I help you today?");
+  } catch (err) {
+    alert("Could not connect to the backend. Is the server running?\n\n" + err.message);
+  }
+}
+
+async function resumeSession(sessionId) {
+  try {
+    const res = await fetch(`${API_BASE}/sessions/${sessionId}/history`);
+    if (res.status === 404) {
+      // Session no longer exists
+      localStorage.removeItem("gigacorp_session_id");
+      alert("Previous session not found. Starting a new one.");
+      createNewSession();
+      return;
+    }
+    if (!res.ok) throw new Error("Failed to fetch history");
+    const history = await res.json();
+    currentSessionId = sessionId;
+    enterChat();
+    messagesEl.innerHTML = "";
+    if (history.length === 0) {
+      addSystemMessage("Session resumed. No previous messages found.");
+    } else {
+      for (const msg of history) {
+        appendMessage(msg.role, msg.content, null);
+      }
+      addSystemMessage("Session resumed. You can continue your conversation.");
+    }
+  } catch (err) {
+    alert("Could not connect to the backend.\n\n" + err.message);
+  }
+}
+
+function enterChat() {
+  welcomeScreen.style.display = "none";
+  chatContainer.classList.add("active");
+  chatActions.style.display = "flex";
+  sessionBadge.style.display = "inline-flex";
+  sessionIdDisplay.textContent = currentSessionId;
+  userInput.focus();
+}
+
+async function clearConversation() {
+  if (!currentSessionId) return;
+  try {
+    await fetch(`${API_BASE}/sessions/${currentSessionId}/messages`, { method: "DELETE" });
+    messagesEl.innerHTML = "";
+    addSystemMessage("Conversation cleared. You can start fresh.");
+  } catch (err) {
+    console.error("Failed to clear:", err);
+  }
+}
+
+// ==========================================================================
+// Messaging
+// ==========================================================================
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text || isWaiting || !currentSessionId) return;
+
+  isWaiting = true;
+  sendBtn.disabled = true;
+  setPromptButtonsDisabled(true);
+  userInput.value = "";
+  autoResize(userInput);
+
+  appendMessage("user", text, null);
+  showTyping(true);
+
+  try {
+    const res = await fetch(`${API_BASE}/sessions/${currentSessionId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    showTyping(false);
+    appendMessage("assistant", data.answer, data);
+  } catch (err) {
+    showTyping(false);
+    appendMessage("assistant", "⚠️ Error: " + err.message, null);
+  } finally {
+    isWaiting = false;
+    sendBtn.disabled = !userInput.value.trim();
+    setPromptButtonsDisabled(false);
+    userInput.focus();
+  }
+}
+
+// ==========================================================================
+// Rendering
+// ==========================================================================
+function appendMessage(role, content, data) {
+  const msg = document.createElement("div");
+  msg.className = `message ${role}`;
+
+  const avatar = document.createElement("div");
+  avatar.className = "message-avatar";
+  avatar.textContent = role === "user" ? "U" : "G";
+
+  const body = document.createElement("div");
+  body.className = "message-body";
+
+  const bubble = document.createElement("div");
+  bubble.className = "message-content";
+  if (data && !data.grounded) {
+    bubble.classList.add("ungrounded");
+  }
+  bubble.textContent = content;
+
+  body.appendChild(bubble);
+
+  // Add sources toggle for assistant with source data
+  if (role === "assistant" && data && data.sources && data.sources.length > 0) {
+    const toggle = document.createElement("button");
+    toggle.className = "sources-toggle";
+    toggle.innerHTML = `📎 ${data.sources.length} source${data.sources.length > 1 ? "s" : ""} <span class="chevron">▼</span>`;
+
+    const panel = document.createElement("div");
+    panel.className = "sources-panel";
+
+    for (const src of data.sources) {
+      const item = document.createElement("div");
+      item.className = "source-item";
+      item.innerHTML = `
+        <div class="source-meta">
+          <span class="source-section">${escapeHtml(src.section)}</span>
+          <span class="source-lines">(lines ${src.start_line}–${src.end_line})</span>
+          <span class="source-sim">${src.similarity.toFixed(2)}</span>
+        </div>
+        <div class="source-evidence">${escapeHtml(src.evidence || "")}</div>
+      `;
+      panel.appendChild(item);
+    }
+
+    toggle.addEventListener("click", () => {
+      toggle.classList.toggle("expanded");
+      panel.classList.toggle("visible");
+    });
+
+    body.appendChild(toggle);
+    body.appendChild(panel);
+  }
+
+  msg.appendChild(avatar);
+  msg.appendChild(body);
+  messagesEl.appendChild(msg);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addSystemMessage(text) {
+  const div = document.createElement("div");
+  div.style.cssText = `
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 8px;
+    font-style: italic;
+  `;
+  div.textContent = text;
+  messagesEl.appendChild(div);
+}
+
+function showTyping(visible) {
+  typingIndicator.classList.toggle("visible", visible);
+  if (visible) {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+}
+
+function setPromptButtonsDisabled(disabled) {
+  for (const btn of promptButtons) {
+    btn.disabled = disabled;
+  }
+}
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ==========================================================================
+// Boot
+// ==========================================================================
+init();
+</script>
+
+</body>
+</html>

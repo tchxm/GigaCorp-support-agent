@@ -1,0 +1,9 @@
+.env
+chroma_db/
+*.sqlite3
+__pycache__/
+.pytest_cache/
+.venv/
+*.egg-info/
+dist/
+build/
